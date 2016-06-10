@@ -27,20 +27,20 @@
     },
   }
    
-  print(toXml(mydict, 'family'))
+  print(toXml(mydict, 'family', indent=2))
    
   Output:
     
     <family name="The Andersson's" size="4">
-    <children total-age="62">
-      <child name="Tom" sex="male"/>
-      <child name="Betty" sex="female">
-      <grandchildren>
-        <grandchild name="herbert" sex="male"/>
-        <grandchild name="lisa" sex="female"/>
-      </grandchildren>
-      </child>
-    </children>
+      <children total-age="62">
+        <child name="Tom" sex="male"/>
+        <child name="Betty" sex="female">
+          <grandchildren>
+            <grandchild name="herbert" sex="male"/>
+            <grandchild name="lisa" sex="female"/>
+          </grandchildren>
+        </child>
+      </children>
     </family>
 """
 
@@ -59,6 +59,7 @@ charmap = [
 
 def pushTop(stack, d, root_node):
   root = 'objects' if None == root_node else root_node
+  parent = stack[0] if len(stack) > 0 else None
   top = {
     'obj': d,
     'wrap': False if None == root_node or isinstance(d, list) else True,
@@ -66,7 +67,8 @@ def pushTop(stack, d, root_node):
     'root_singular': root[:-1] if 's' == root[-1] and None == root_node else root,
     'xml': '',
     'children': [],
-    'parent': stack[0] if len(stack) > 0 else None
+    'parent': parent,
+    'depth': parent['depth']+1 if parent else 0
   }
   stack.append(top)
   return top
@@ -84,7 +86,7 @@ def popTop(stack):
       top['xml'] = top['xml'] + child
 
     if top['wrap'] or isinstance(top['obj'], dict):
-      top['xml'] = top['xml'] + '</' + top['root'] + '>'
+      top['xml'] += '</' + top['root'] + '>'
 
   return top;
 
@@ -93,8 +95,10 @@ def isValidList(l):
     return False
 
   for v in l:
-    if not isinstance(v, dict) or isValidList(v):
+    if not isinstance(v, dict) and not isValidList(v):
       return False
+
+  return True
 
 def listToStr(l):
   text = ''
@@ -106,10 +110,13 @@ def listToStr(l):
 
   return text
 
-def toXml(d, root_node=None):
+def toXml(d, root_node=None, indent=None):
   stack = []
   top = pushTop(stack, d, root_node)
-  
+
+  if type(indent) == int:
+    indent = ' ' * indent
+
   while True:
     if 'ready' not in top:
       top['ready'] = True
@@ -126,10 +133,15 @@ def toXml(d, root_node=None):
             # Check for invalid characters:
             for char, code in charmap:
               assert(char not in key)
-              value = str(value).replace(char, code)
+              if py2 and type(value) == unicode:
+                value = value.replace(unicode(char), unicode(code))
+              else:
+                value = str(value).replace(char, code)
             # Add attributes:
             top['xml'] = top['xml'] + ' ' + key + '="' + value + '"'
       elif isinstance(top['obj'], list):
+        print("LEEEEN", len(top['obj']))
+        print(top['obj'][-1])
         for value in top['obj']:
           top = pushTop(stack, value, top['root_singular'])
       else:
@@ -140,21 +152,19 @@ def toXml(d, root_node=None):
       if top['parent'] == None:
         break
       else:
+        if indent != None:
+          if isinstance(top['obj'], list):
+            spaces = '\n'+indent*(top['depth']-1) 
+          else:
+            spaces = '\n'+indent*top['depth'] 
+        else:
+          spaces = ''
+
         top = popTop(stack)
-        top['parent']['children'].append('\n'+top['xml'])
+        top['parent']['children'].append(spaces+top['xml'])
         top = stack[-1]
     
   return popTop(stack)['xml']
-
-if __name__ == '__main__':
-  
-  a = {
-    'batata*' : 'feijoada'
-  }
-
-  toXml(a)
-
-
 
 
 
