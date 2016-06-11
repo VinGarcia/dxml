@@ -54,13 +54,16 @@ def popTop(stack, indent):
   end_tag = '>' if len(top['children']) > 0 else '/>'
 
   # Build the xml:
-  top['xml'] = (top['indent'] if indent else '') + '<' + top['root'] + top['xml'] + end_tag
+  if isinstance(top['obj'], dict):
+    top['xml'] = (top['indent'] if indent else '') + '<' + top['root'] + top['xml'] + end_tag
 
-  if len(top['children']) > 0:
-    for child in top['children']:
-      top['xml'] += ('\n' if indent else '') + child
-      
-    top['xml'] += ('\n'+top['indent'] if indent else '') + '</' + top['root'] + '>'
+    if len(top['children']) > 0:
+      for child in top['children']:
+        top['xml'] += ('\n' if indent else '') + child
+        
+      top['xml'] += ('\n'+top['indent'] if indent else '') + '</' + top['root'] + '>'
+  else:
+    top['xml'] = (top['indent'] if indent else '') + '"' + top['xml'] + '"'
 
   if top['parent']:
     top['parent']['children'].append(top['xml'])
@@ -68,12 +71,28 @@ def popTop(stack, indent):
   else:
     return top;
 
-def isValidList(l):
-  for v in l:
-    if not isinstance(v, dict) and not isValidList(v):
-      return False
+def makeValidList(l):
+  vList = []
 
-  return True
+  for v in l:
+    if isinstance(v, dict):
+      vList.append(v)
+    elif isinstance(v, list):
+      vList.extend( makeValidList(v) )
+    elif py2 and type(v) == unicode:
+      vList.append(v)
+    else:
+      vList.append(str(v))
+
+  return vList
+
+def makeValidString(value):
+  for char, code in charmap:
+    if py2 and type(value) == unicode:
+      value = value.replace(unicode(char), unicode(code))
+    else:
+      value = str(value).replace(char, code)
+  return value
 
 def listToStr(l):
   text = ''
@@ -100,25 +119,14 @@ def toXml(d, root=None, indent=None):
           if isinstance(value, dict):
             pushTop(stack, value, key, top, indent)
           elif isinstance(value, list):
-            if isValidList(value):
-              for item in value:
-                pushTop(stack, item, key, top, indent)
-            else:
-              top['xml'] += ' ' + key + '="' + listToStr(value) + '"'
+            for item in makeValidList(value):
+              pushTop(stack, item, key, top, indent)
           elif value != None:
-            # Check for invalid characters:
-            for char, code in charmap:
-              assert(char not in key)
-              if py2 and type(value) == unicode:
-                value = value.replace(unicode(char), unicode(code))
-              else:
-                value = str(value).replace(char, code)
             # Add attributes:
-            top['xml'] = top['xml'] + ' ' + key + '="' + value + '"'
+            top['xml'] += ' ' + key + '="' + makeValidString(value) + '"'
         top = stack[-1]
       else:
-        raise Exception(
-            "Invalid type `%s` to be converted to XML!" % type(top['obj']))
+        top['xml'] = makeValidString(top['obj'])
 
     if 'ready' in top:
       if top['parent'] == None:
@@ -136,8 +144,11 @@ if __name__ == '__main__':
     'children': {
       'total-children': 3,
       'child': [
+        "first child:",
         { 'name': 'Tom', 'sex': 'male', },
+        "second child:",
         { 'name': 'Max', 'sex': 'male', },
+        "third child:",
         {
           'name': 'Betty',
           'sex': 'female',
