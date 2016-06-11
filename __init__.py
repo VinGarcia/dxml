@@ -22,8 +22,24 @@
     </family>
 """
 
+import re
+
 from sys import version_info
 py2 = version_info[0] == 2
+
+namecheck_re = re.compile('\A[:A-Z_a-z][:A-Z_a-z0-9.-]*\Z')
+
+def namecheck(key, errors):
+  if not namecheck_re.match(key):
+    if errors == "strict":
+      raise Exception("Invalid characters in attribute name: %s" % key)
+    elif errors == "replace":
+      key = re.sub('[^0-9a-zA-Z_-:]', '?', key)
+    elif errors == "ignore":
+      pass
+
+  return key
+
 
 charmap = [
   # Note that `&->&amp;` must be the first item.
@@ -35,11 +51,10 @@ charmap = [
   ('\n', '&#xA;')
 ]
 
-#                 str  key:tag   object  None
 def pushTop(stack, d, root_node, parent, indent):
   top = {
     'obj': d,
-    'root': 'objects' if root_node == None else root_node,
+    'root': root_node,
     'xml': '',
     'children': [],
     'parent': parent,
@@ -105,8 +120,9 @@ def listToStr(l):
 
   return text
 
-def toXml(d, root=None, indent=None):
+def toXml(d, root='object', indent=None, errors='strict'):
   stack = []
+  root = namecheck(root, errors)
   top = pushTop(stack, d, root, None, indent)
 
   if type(indent) == int:
@@ -117,6 +133,7 @@ def toXml(d, root=None, indent=None):
       top['ready'] = True
       if isinstance(top['obj'], dict):
         for key, value in dict.items(top['obj']):
+          key = namecheck(key, errors)
           if isinstance(value, dict):
             pushTop(stack, value, key, top, indent)
           elif isinstance(value, list):
