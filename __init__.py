@@ -35,6 +35,7 @@ charmap = [
   ('\n', '&#xA;')
 ]
 
+#                 str  key:tag   object  None
 def pushTop(stack, d, root_node, parent, indent):
   top = {
     'obj': d,
@@ -42,7 +43,7 @@ def pushTop(stack, d, root_node, parent, indent):
     'xml': '',
     'children': [],
     'parent': parent,
-    'indent': parent['indent']+indent if parent else ''
+    'indent': parent['indent']+indent if parent and indent else ''
   }
   stack.append(top)
   return top
@@ -164,6 +165,8 @@ if __name__ == '__main__':
   }
    
   print(toXml(mydict, 'family', indent=2))
+
+  print(toXml({ 'tag': [ 'text_node' ] }))
 
 
 
