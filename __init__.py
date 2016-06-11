@@ -74,7 +74,7 @@ def popTop(stack, indent):
     top['xml'] = (top['indent'] if indent else '') + '<' + top['root'] + top['xml'] + end_tag
 
     if len(top['children']) > 0:
-      for child in top['children']:
+      for child in reversed(top['children']):
         top['xml'] += ('\n' if indent else '') + child
         
       top['xml'] += ('\n'+top['indent'] if indent else '') + '</' + top['root'] + '>'
@@ -141,7 +141,7 @@ def toXml(d, root='object', indent=None, errors='strict'):
               pushTop(stack, item, key, top, indent)
           elif value != None:
             # Add attributes:
-            top['xml'] += ' ' + key + '="' + makeValidString(value) + '"'
+            top['xml'] = ' ' + key + '="' + makeValidString(value) + '"' + top['xml']
         top = stack[-1]
       else:
         top['xml'] = makeValidString(top['obj'])
