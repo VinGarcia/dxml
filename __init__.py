@@ -31,7 +31,7 @@
    
   Output:
     
-    <family name="The Andersson's" size="4">
+    <family name="The Andersson&apos;s" size="4">
       <children total-age="62">
         <child name="Tom" sex="male"/>
         <child name="Betty" sex="female">
