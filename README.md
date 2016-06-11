@@ -2,17 +2,17 @@
 ## Usage:
 
 ```python
-> import dxml
-> dxml.dumps({'a': 10})
+> import xmldump
+> xmldump.dumps({'a': 10})
 '<object a="10"/>'
 
-> dxml.dumps({'a': 10}, root_node='base')
+> xmldump.dumps({'a': 10}, root_node='base')
 '<base a="10"/>'
 
-> dxml.dumps({'a': 10, 'b': {'c': 'child_attr'}})
+> xmldump.dumps({'a': 10, 'b': {'c': 'child_attr'}})
 '<objects a="10"><b c="child_attr"/></objects>'
 
-> xml = dxml.dumps({'a': 10, 'b': {'c': 'child_attr'}}, indent=2)
+> xml = xmldump.dumps({'a': 10, 'b': {'c': 'child_attr'}}, indent=2)
 > print(xml)
 <objects a="10">
   <b c="child_attr"/>
