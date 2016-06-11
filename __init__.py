@@ -6,7 +6,6 @@
 
   Example:
    
-   
   Output:
     
     <family name="The Andersson&apos;s" size="4">
@@ -120,10 +119,13 @@ def listToStr(l):
 
   return text
 
-def toXml(d, root='object', indent=None, errors='strict'):
+def dump(file, Dict, root='object', indent=None, errors='strict'):
+  file.write( dumps(Dict, root, indent, errors) )
+
+def dumps(Dict, root='object', indent=None, errors='strict'):
   stack = []
   root = namecheck(root, errors)
-  top = pushTop(stack, d, root, None, indent)
+  top = pushTop(stack, Dict, root, None, indent)
 
   if type(indent) == int:
     indent = ' ' * indent
@@ -181,9 +183,12 @@ if __name__ == '__main__':
     }
   }
    
-  print(toXml(mydict, 'family', indent=2))
+  print(dumps(mydict, 'family', indent=2))
 
-  print(toXml({ 'tag': [ 'text_node' ] }))
+  print(dumps({ 'tag': [ 'text_node' ] }))
+
+  with open('test.xml', 'w') as file:
+    dump(file, mydict, 'family', indent=2)
 
 
 
