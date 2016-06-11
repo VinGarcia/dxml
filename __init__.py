@@ -6,28 +6,6 @@
 
   Example:
    
-  mydict = {
-    'name': 'The Andersson\'s',
-    'size': 4,
-    'children': {
-      'total-age': 62,
-      'child': [
-        { 'name': 'Tom', 'sex': 'male', },
-        {
-          'name': 'Betty',
-          'sex': 'female',
-          'grandchildren': {
-            'grandchild': [
-              { 'name': 'herbert', 'sex': 'male', },
-              { 'name': 'lisa', 'sex': 'female', }
-            ]
-          },
-        }
-      ]
-    },
-  }
-   
-  print(toXml(mydict, 'family', indent=2))
    
   Output:
     
@@ -57,43 +35,40 @@ charmap = [
   ('\n', '&#xA;')
 ]
 
-def pushTop(stack, d, root_node):
-  root = 'objects' if None == root_node else root_node
-  parent = stack[0] if len(stack) > 0 else None
+def pushTop(stack, d, root_node, parent, indent):
   top = {
     'obj': d,
-    'wrap': False if None == root_node or isinstance(d, list) else True,
-    'root': root,
-    'root_singular': root[:-1] if 's' == root[-1] and None == root_node else root,
+    'root': 'objects' if root_node == None else root_node,
     'xml': '',
     'children': [],
     'parent': parent,
-    'depth': parent['depth']+1 if parent else 0
+    'indent': parent['indent']+indent if parent else ''
   }
   stack.append(top)
   return top
 
-def popTop(stack):
+def popTop(stack, indent):
   top = stack.pop()
 
-  end_tag = '>' if 0 < len(top['children']) else '/>'
+  # Prepare to build the xml
+  end_tag = '>' if len(top['children']) > 0 else '/>'
 
-  if top['wrap'] or isinstance(top['obj'], dict):
-    top['xml'] = '<' + top['root'] + top['xml'] + end_tag
+  # Build the xml:
+  top['xml'] = (top['indent'] if indent else '') + '<' + top['root'] + top['xml'] + end_tag
 
-  if 0 < len(top['children']):
+  if len(top['children']) > 0:
     for child in top['children']:
-      top['xml'] = top['xml'] + child
+      top['xml'] += ('\n' if indent else '') + child
+      
+    top['xml'] += ('\n'+top['indent'] if indent else '') + '</' + top['root'] + '>'
 
-    if top['wrap'] or isinstance(top['obj'], dict):
-      top['xml'] += '</' + top['root'] + '>'
-
-  return top;
+  if top['parent']:
+    top['parent']['children'].append(top['xml'])
+    return stack[-1]
+  else:
+    return top;
 
 def isValidList(l):
-  if not isinstance(l, list):
-    return False
-
   for v in l:
     if not isinstance(v, dict) and not isValidList(v):
       return False
@@ -110,9 +85,9 @@ def listToStr(l):
 
   return text
 
-def toXml(d, root_node=None, indent=None):
+def toXml(d, root=None, indent=None):
   stack = []
-  top = pushTop(stack, d, root_node)
+  top = pushTop(stack, d, root, None, indent)
 
   if type(indent) == int:
     indent = ' ' * indent
@@ -123,10 +98,11 @@ def toXml(d, root_node=None, indent=None):
       if isinstance(top['obj'], dict):
         for key, value in dict.items(top['obj']):
           if isinstance(value, dict):
-            top = pushTop(stack, value, key)
+            pushTop(stack, value, key, top, indent)
           elif isinstance(value, list):
             if isValidList(value):
-              top = pushTop(stack, value, key)
+              for item in value:
+                pushTop(stack, item, key, top, indent)
             else:
               top['xml'] += ' ' + key + '="' + listToStr(value) + '"'
           elif value != None:
@@ -139,11 +115,7 @@ def toXml(d, root_node=None, indent=None):
                 value = str(value).replace(char, code)
             # Add attributes:
             top['xml'] = top['xml'] + ' ' + key + '="' + value + '"'
-      elif isinstance(top['obj'], list):
-        print("LEEEEN", len(top['obj']))
-        print(top['obj'][-1])
-        for value in top['obj']:
-          top = pushTop(stack, value, top['root_singular'])
+        top = stack[-1]
       else:
         raise Exception(
             "Invalid type `%s` to be converted to XML!" % type(top['obj']))
@@ -152,20 +124,35 @@ def toXml(d, root_node=None, indent=None):
       if top['parent'] == None:
         break
       else:
-        if indent != None:
-          if isinstance(top['obj'], list):
-            spaces = '\n'+indent*(top['depth']-1) 
-          else:
-            spaces = '\n'+indent*top['depth'] 
-        else:
-          spaces = ''
-
-        top = popTop(stack)
-        top['parent']['children'].append(spaces+top['xml'])
-        top = stack[-1]
+        top = popTop(stack, indent)
     
-  return popTop(stack)['xml']
+  return popTop(stack, indent)['xml']
 
+if __name__ == '__main__':
+
+  mydict = {
+    'name': 'The Andersson\'s',
+    'family-size': 4,
+    'children': {
+      'total-children': 3,
+      'child': [
+        { 'name': 'Tom', 'sex': 'male', },
+        { 'name': 'Max', 'sex': 'male', },
+        {
+          'name': 'Betty',
+          'sex': 'female',
+          'grandchildren': {
+            'grandchild': [
+              { 'name': 'herbert', 'sex': 'male' },
+              { 'name': 'lisa', 'sex': 'female' }
+            ]
+          }
+        }
+      ]
+    }
+  }
+   
+  print(toXml(mydict, 'family', indent=2))
 
 
 
